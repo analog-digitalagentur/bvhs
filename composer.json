@@ -1,0 +1,20 @@
+{
+    "name": "bo/bvhs",
+    "type": "typo3-cms-extension",
+    "description": "",
+    "license": ["GPL-2.0-or-later"],
+    "keywords": ["TYPO3 CMS"],
+    "require": {
+        "typo3/cms-core": "*"
+    },
+    "autoload": {
+        "psr-4": {
+            "Bo\\Bvhs\\": "Classes/"
+        }
+    },
+    "extra": {
+        "typo3/cms": {
+            "extension-key": "bvhs"
+        }
+    }
+}
