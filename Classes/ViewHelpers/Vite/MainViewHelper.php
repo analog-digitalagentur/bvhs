@@ -70,7 +70,7 @@ class MainViewHelper extends AbstractViewHelper
     {
         $currentApplicationContext = \TYPO3\CMS\Core\Core\Environment::getContext()->__toString();
         $absoluteOutdir = GeneralUtility::getFileAbsFileName($this->arguments["outdir"]);
-        $relativeOutdir = PathUtility::getRelativePathTo($absoluteOutdir);
+        $relativeOutdir = PathUtility::getAbsoluteWebPath($absoluteOutdir);
 
         $vueDevelopment = getenv("VUE_DEVELOPMENT");
 
@@ -86,7 +86,6 @@ class MainViewHelper extends AbstractViewHelper
                 '<script type="module" src="http://localhost:' .
                 $this->arguments["port"] .
                 "/" .
-                $relativeOutdir .
                 '@vite/client"' .
                 $additionalAttributesString .
                 '></script>'
@@ -95,7 +94,6 @@ class MainViewHelper extends AbstractViewHelper
                 '<script type="module" src="http://localhost:' .
                 $this->arguments["port"] .
                 "/" .
-                $relativeOutdir .
                 $this->arguments["input"] .
                 '"' .
                 $additionalAttributesString .
@@ -115,6 +113,9 @@ class MainViewHelper extends AbstractViewHelper
 
             if ($manifest[$this->arguments["input"]]["css"]) {
                 foreach ($manifest[$this->arguments["input"]]["css"] as $maincssfile) {
+                    if (str_starts_with($relativeOutdir, "/")) {
+                        $relativeOutdir = substr($relativeOutdir, 1);
+                    }
                     $this->assetCollector->addCssFile($relativeOutdir . $maincssfile, $additionalAttributes);
                 }
             }
