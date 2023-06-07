@@ -73,6 +73,7 @@ class MainViewHelper extends AbstractViewHelper
         $relativeOutdir = PathUtility::getAbsoluteWebPath($absoluteOutdir);
 
         $vueDevelopment = getenv("VUE_DEVELOPMENT");
+        $viteDevelopment = getenv("VITE_DEVELOPMENT");
 
         $additionalAttributes = $this->arguments["additionalAttributes"];
         $additionalAttributesString = "";
@@ -80,7 +81,7 @@ class MainViewHelper extends AbstractViewHelper
             $additionalAttributesString .= ' ' . htmlspecialchars($key) . '="' . htmlspecialchars($value) . '"';
         }
 
-        if ($vueDevelopment == true) {
+        if ($viteDevelopment == true || $vueDevelopment == true) {
             $pageRenderer = GeneralUtility::makeInstance(\TYPO3\CMS\Core\Page\PageRenderer::class);
             $pageRenderer->addHeaderData(
                 '<script type="module" src="http://localhost:' .
