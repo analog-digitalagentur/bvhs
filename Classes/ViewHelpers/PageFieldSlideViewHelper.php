@@ -44,6 +44,8 @@ class PageFieldSlideViewHelper extends AbstractViewHelper
 {
     use CompileWithRenderStatic;
 
+    protected $escapeOutput = false;
+
     public function initializeArguments()
     {
         $this->registerArgument('uid', 'int', 'UID der Seite', true);

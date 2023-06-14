@@ -33,6 +33,8 @@ use TYPO3Fluid\Fluid\Core\ViewHelper\Traits\CompileWithRenderStatic;
 class DatabaseQueryViewHelper extends AbstractViewHelper
 {
     use CompileWithRenderStatic;
+    
+    protected $escapeOutput = false;
 
     /**
      * Initialize arguments
