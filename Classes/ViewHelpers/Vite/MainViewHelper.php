@@ -85,20 +85,20 @@ class MainViewHelper extends AbstractViewHelper
             $pageRenderer = GeneralUtility::makeInstance(\TYPO3\CMS\Core\Page\PageRenderer::class);
             $pageRenderer->addHeaderData(
                 '<script type="module" src="http://localhost:' .
-                $this->arguments["port"] .
-                "/" .
-                '@vite/client"' .
-                $additionalAttributesString .
-                '></script>'
+                    $this->arguments["port"] .
+                    "/" .
+                    '@vite/client"' .
+                    $additionalAttributesString .
+                    '></script>'
             );
             $pageRenderer->addHeaderData(
                 '<script type="module" src="http://localhost:' .
-                $this->arguments["port"] .
-                "/" .
-                $this->arguments["input"] .
-                '"' .
-                $additionalAttributesString .
-                '></script>'
+                    $this->arguments["port"] .
+                    "/" .
+                    $this->arguments["input"] .
+                    '"' .
+                    $additionalAttributesString .
+                    '></script>'
             );
         } else {
             $file = file_get_contents($absoluteOutdir . "/manifest.json");
@@ -107,12 +107,25 @@ class MainViewHelper extends AbstractViewHelper
                 $relativeOutdir .= "/";
             }
 
-            $mainJsFile = $relativeOutdir . $manifest[$this->arguments["input"]]["file"];
-            if ($mainJsFile) {
-                $this->assetCollector->addJavaScriptFile($mainJsFile, array_merge(["type" => "module", "async" => "true"], $additionalAttributes));
+            $mainFile = $relativeOutdir . $manifest[$this->arguments["input"]]["file"];
+
+            if ($mainFile) {
+                $fileExtension = pathinfo($mainFile, PATHINFO_EXTENSION);
+
+                switch ($fileExtension) {
+                    case 'js':
+                        $this->assetCollector->addJavaScriptFile($mainFile, array_merge(["type" => "module", "async" => "true"], $additionalAttributes));
+                        break;
+                    case 'css':
+                        if (str_starts_with($mainFile, "/")) {
+                            $mainFile = substr($mainFile, 1);
+                        }
+                        $this->assetCollector->addCssFile($mainFile, $additionalAttributes);
+                        break;
+                }
             }
 
-            if ($manifest[$this->arguments["input"]]["css"]) {
+            if (isset($manifest[$this->arguments["input"]]["css"])) {
                 foreach ($manifest[$this->arguments["input"]]["css"] as $maincssfile) {
                     if (str_starts_with($relativeOutdir, "/")) {
                         $relativeOutdir = substr($relativeOutdir, 1);
