@@ -103,8 +103,13 @@ class MainViewHelper extends AbstractViewHelper
         } else {
             $file = file_get_contents($absoluteOutdir . "/manifest.json");
             $manifest = json_decode($file, true);
+
             if (!str_ends_with($relativeOutdir, "/")) {
                 $relativeOutdir .= "/";
+            }
+
+            if (!isset($manifest[$this->arguments["input"]])) {
+                return;
             }
 
             $mainFile = $relativeOutdir . $manifest[$this->arguments["input"]]["file"];
