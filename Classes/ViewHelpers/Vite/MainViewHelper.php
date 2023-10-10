@@ -83,24 +83,31 @@ class MainViewHelper extends AbstractViewHelper
 
         if ($viteDevelopment == true || $vueDevelopment == true) {
             $pageRenderer = GeneralUtility::makeInstance(\TYPO3\CMS\Core\Page\PageRenderer::class);
+
+            $domain = $_SERVER['DDEV_PROJECT_TYPE'] === 'typo3' ? $_SERVER['SERVER_NAME'] : 'localhost';
+            $protocol = $_SERVER['DDEV_PROJECT_TYPE'] === 'typo3' ? 'https' : 'http'; // Assuming you use HTTPS for your typo3 domain
+
             $pageRenderer->addHeaderData(
-                '<script type="module" src="http://localhost:' .
-                    $this->arguments["port"] .
-                    "/" .
-                    '@vite/client"' .
-                    $additionalAttributesString .
-                    '></script>'
+                '<script type="module" src="' . $protocol . '://' .
+                $domain . ':' .
+                $this->arguments["port"] .
+                "/" .
+                '@vite/client"' .
+                $additionalAttributesString .
+                '></script>'
             );
             $pageRenderer->addHeaderData(
-                '<script type="module" src="http://localhost:' .
-                    $this->arguments["port"] .
-                    "/" .
-                    $this->arguments["input"] .
-                    '"' .
-                    $additionalAttributesString .
-                    '></script>'
+                '<script type="module" src="' . $protocol . '://' .
+                $domain . ':' .
+                $this->arguments["port"] .
+                "/" .
+                $this->arguments["input"] .
+                '"' .
+                $additionalAttributesString .
+                '></script>'
             );
-        } else {
+        }
+        else {
             $file = file_get_contents($absoluteOutdir . "/manifest.json");
             $manifest = json_decode($file, true);
 
