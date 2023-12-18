@@ -43,6 +43,7 @@ class HeadlineViewHelper extends AbstractViewHelper
             ""
         );
         $this->registerArgument("headerclass", "string", "The class to add to the header element", false, "");
+        $this->registerArgument("splitwrap", "string", "The text to format", false);
     }
 
     public static function renderStatic(
@@ -55,13 +56,11 @@ class HeadlineViewHelper extends AbstractViewHelper
         $wrapclass = $arguments["wrapclass"];
         $headertype = $arguments["headertype"];
         $headerclass = $arguments["headerclass"];
+        $splitwrap = $arguments["splitwrap"];
 
         if (empty($text)) {
             return "";
         }
-
-        // replace all occurrences of the pipe character with a <br> tag
-        $text = str_replace("|", "<br>", $text);
 
         // extract the word in single quotes and replace with wrapped version
         preg_match_all("/'([^']+)'/", $text, $matches);
@@ -69,6 +68,19 @@ class HeadlineViewHelper extends AbstractViewHelper
             $classAttr = !empty($wrapclass) ? "class=\"$wrapclass\"" : "";
             $wrappedWord = "<{$wrap} {$classAttr}>{$word}</{$wrap}>";
             $text = str_replace("'$word'", $wrappedWord, $text);
+        }
+
+        // if splitwrap is set, split the text at the pipe character and wrap each part
+        if (!empty($splitwrap)) {
+            $parts = explode("|", $text);
+            foreach ($parts as $index => $part) {
+                $part = trim($part); // trim spaces at the start and end of the part
+                $parts[$index] = "<{$splitwrap} class=\"prt--" . ($index + 1) . "\">{$part}</{$splitwrap}>";
+            }
+            $text = implode("", $parts);
+        } else {
+            // replace all occurrences of the pipe character with a <br> tag
+            $text = str_replace("|", "<br>", $text);
         }
 
         // wrap the entire string with the specified header tag, if provided
