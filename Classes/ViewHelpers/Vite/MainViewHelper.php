@@ -108,41 +108,50 @@ class MainViewHelper extends AbstractViewHelper
             );
         }
         else {
-            $file = file_get_contents($absoluteOutdir . "/manifest.json");
-            $manifest = json_decode($file, true);
-
-            if (!str_ends_with($relativeOutdir, "/")) {
-                $relativeOutdir .= "/";
+            $file = null;
+            if (file_exists($absoluteOutdir . "/manifest.json")) {
+                $file = file_get_contents($absoluteOutdir . "/manifest.json");
+            } elseif (file_exists($absoluteOutdir . "/.vite/manifest.json")) {
+                $file = file_get_contents($absoluteOutdir . "/.vite/manifest.json");
             }
 
-            if (!isset($manifest[$this->arguments["input"]])) {
-                return;
-            }
+            if ($file !== null) {
 
-            $mainFile = $relativeOutdir . $manifest[$this->arguments["input"]]["file"];
+                $manifest = json_decode($file, true);
 
-            if ($mainFile) {
-                $fileExtension = pathinfo($mainFile, PATHINFO_EXTENSION);
-
-                switch ($fileExtension) {
-                    case 'js':
-                        $this->assetCollector->addJavaScriptFile($mainFile, array_merge(["type" => "module", "async" => "true"], $additionalAttributes));
-                        break;
-                    case 'css':
-                        if (str_starts_with($mainFile, "/")) {
-                            $mainFile = substr($mainFile, 1);
-                        }
-                        $this->assetCollector->addCssFile($mainFile, $additionalAttributes);
-                        break;
+                if (!str_ends_with($relativeOutdir, "/")) {
+                    $relativeOutdir .= "/";
                 }
-            }
 
-            if (isset($manifest[$this->arguments["input"]]["css"])) {
-                foreach ($manifest[$this->arguments["input"]]["css"] as $maincssfile) {
-                    if (str_starts_with($relativeOutdir, "/")) {
-                        $relativeOutdir = substr($relativeOutdir, 1);
+                if (!isset($manifest[$this->arguments["input"]])) {
+                    return;
+                }
+
+                $mainFile = $relativeOutdir . $manifest[$this->arguments["input"]]["file"];
+
+                if ($mainFile) {
+                    $fileExtension = pathinfo($mainFile, PATHINFO_EXTENSION);
+
+                    switch ($fileExtension) {
+                        case 'js':
+                            $this->assetCollector->addJavaScriptFile($mainFile, array_merge(["type" => "module", "async" => "true"], $additionalAttributes));
+                            break;
+                        case 'css':
+                            if (str_starts_with($mainFile, "/")) {
+                                $mainFile = substr($mainFile, 1);
+                            }
+                            $this->assetCollector->addCssFile($mainFile, $additionalAttributes);
+                            break;
                     }
-                    $this->assetCollector->addCssFile($relativeOutdir . $maincssfile, $additionalAttributes);
+                }
+
+                if (isset($manifest[$this->arguments["input"]]["css"])) {
+                    foreach ($manifest[$this->arguments["input"]]["css"] as $maincssfile) {
+                        if (str_starts_with($relativeOutdir, "/")) {
+                            $relativeOutdir = substr($relativeOutdir, 1);
+                        }
+                        $this->assetCollector->addCssFile($relativeOutdir . $maincssfile, $additionalAttributes);
+                    }
                 }
             }
         }
