@@ -51,12 +51,12 @@ class HeadlineViewHelper extends AbstractViewHelper
         \Closure $renderChildrenClosure,
         RenderingContextInterface $renderingContext
     ) {
-        $text = $arguments["text"];
-        $wrap = $arguments["wrap"];
-        $wrapclass = $arguments["wrapclass"];
-        $headertype = $arguments["headertype"];
-        $headerclass = $arguments["headerclass"];
-        $splitwrap = $arguments["splitwrap"];
+        $text = isset($arguments["text"]) ? $arguments["text"] : "";
+        $wrap = isset($arguments["wrap"]) ? $arguments["wrap"] : "";
+        $wrapclass = isset($arguments["wrapclass"]) ? $arguments["wrapclass"] : "";
+        $headertype = isset($arguments["headertype"]) ? $arguments["headertype"] : "";
+        $headerclass = isset($arguments["headerclass"]) ? $arguments["headerclass"] : "";
+        $splitwrap = isset($arguments["splitwrap"]) ? $arguments["splitwrap"] : "";
 
         if (empty($text)) {
             return "";
