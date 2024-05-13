@@ -53,9 +53,9 @@ class MainViewHelper extends AbstractViewHelper
         $this->registerArgument(
             "port",
             "int",
-            "Optional: Port for the Vite development server (default: 5999)",
+            "Optional: Port for the Vite development server (default: 5111)",
             false,
-            5999
+            5111
         );
         $this->registerArgument(
             "additionalAttributes",
@@ -81,6 +81,8 @@ class MainViewHelper extends AbstractViewHelper
             $additionalAttributesString .= ' ' . htmlspecialchars($key) . '="' . htmlspecialchars($value) . '"';
         }
 
+        $port = getenv("VITE_PORT") ?: $this->arguments["port"];
+
         if ($viteDevelopment == true || $vueDevelopment == true) {
             $pageRenderer = GeneralUtility::makeInstance(\TYPO3\CMS\Core\Page\PageRenderer::class);
 
@@ -90,7 +92,7 @@ class MainViewHelper extends AbstractViewHelper
             $pageRenderer->addHeaderData(
                 '<script type="module" src="' . $protocol . '://' .
                 $domain . ':' .
-                $this->arguments["port"] .
+                $port .
                 "/" .
                 '@vite/client"' .
                 $additionalAttributesString .
@@ -99,7 +101,7 @@ class MainViewHelper extends AbstractViewHelper
             $pageRenderer->addHeaderData(
                 '<script type="module" src="' . $protocol . '://' .
                 $domain . ':' .
-                $this->arguments["port"] .
+                $port .
                 "/" .
                 $this->arguments["input"] .
                 '"' .
