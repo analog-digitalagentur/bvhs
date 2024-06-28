@@ -10,18 +10,21 @@ use TYPO3Fluid\Fluid\Core\ViewHelper\Traits\CompileWithRenderStatic;
  * and optionally wraps the entire string with a header tag.
  *
  * Example usage:
- * <b:headline text="Welcome to the 'TYPO3' World" wrap="span" wrapclass="highlight" headertype="h1" headerclass="main-heading" />
+ * <b:headline text="'Welcome' | to our `amazing` website" wrap="span" wrapclass="highlight" headertype="h1" headerclass="main-heading" specialWrap="span" specialWrapClass="special" />
  *
  * This will output:
- * <h1 class="main-heading">Welcome to the <span class="highlight">TYPO3</span> World</h1>
+ * <h1 class="main-heading"><span class="prt--1"><span class="highlight">Welcome</span></span><span class="prt--2">to our <span class="special">amazing</span> website</span></h1>
  *
  * Arguments:
  * - text (string, required): The text to format. Use single quotes around the parts that should be wrapped.
- *   Replace pipe characters '|' with '<br>' tags.
+ *   Use pipe characters '|' to split the text into parts.
  * - wrap (string, required): The HTML tag to wrap the specified parts of the text with (e.g. "span").
  * - wrapclass (string, optional): The class to add to the wrapped HTML element.
  * - headertype (string, optional): The HTML tag to wrap the entire string with (e.g. "h1").
  * - headerclass (string, optional): The class to add to the header element.
+ * - splitwrap (string, optional): The HTML tag to wrap each part of the split text with.
+ * - specialWrap (string, optional): The HTML tag to wrap text within backticks.
+ * - specialWrapClass (string, optional): The class to add to the special wrapped HTML element.
  */
 
 class HeadlineViewHelper extends AbstractViewHelper
@@ -35,15 +38,11 @@ class HeadlineViewHelper extends AbstractViewHelper
         $this->registerArgument("text", "string", "The text to format", true);
         $this->registerArgument("wrap", "string", "The HTML tag to wrap the first part of the text with", true);
         $this->registerArgument("wrapclass", "string", "The class to add to the wrapped HTML element", false, "");
-        $this->registerArgument(
-            "headertype",
-            "string",
-            'The HTML tag to wrap the entire string with (e.g. "h1")',
-            false,
-            ""
-        );
+        $this->registerArgument("headertype", "string", 'The HTML tag to wrap the entire string with (e.g. "h1")', false, "");
         $this->registerArgument("headerclass", "string", "The class to add to the header element", false, "");
-        $this->registerArgument("splitwrap", "string", "The text to format", false);
+        $this->registerArgument("splitwrap", "string", "The HTML tag to wrap each part of the split text with", false, "");
+        $this->registerArgument("specialWrap", "string", "The HTML tag to wrap text within backticks", false, "span");
+        $this->registerArgument("specialWrapClass", "string", "The class to add to the special wrapped HTML element", false, "special");
     }
 
     public static function renderStatic(
@@ -51,46 +50,45 @@ class HeadlineViewHelper extends AbstractViewHelper
         \Closure $renderChildrenClosure,
         RenderingContextInterface $renderingContext
     ) {
-        $text = isset($arguments["text"]) ? $arguments["text"] : "";
-        $wrap = isset($arguments["wrap"]) ? $arguments["wrap"] : "";
-        $wrapclass = isset($arguments["wrapclass"]) ? $arguments["wrapclass"] : "";
-        $headertype = isset($arguments["headertype"]) ? $arguments["headertype"] : "";
-        $headerclass = isset($arguments["headerclass"]) ? $arguments["headerclass"] : "";
-        $splitwrap = isset($arguments["splitwrap"]) ? $arguments["splitwrap"] : "";
+        $text = $arguments["text"] ?? "";
+        $wrap = $arguments["wrap"] ?? "";
+        $wrapclass = $arguments["wrapclass"] ?? "";
+        $headertype = $arguments["headertype"] ?? "";
+        $headerclass = $arguments["headerclass"] ?? "";
+        $splitwrap = $arguments["splitwrap"] ?? "";
+        $specialWrap = $arguments["specialWrap"] ?? "span";
+        $specialWrapClass = $arguments["specialWrapClass"] ?? "special";
 
         if (empty($text)) {
             return "";
         }
 
-        // extract the word in single quotes and replace with wrapped version
-        preg_match_all("/'([^']+)'/", $text, $matches);
-        foreach ($matches[1] as $word) {
-            $classAttr = !empty($wrapclass) ? "class=\"$wrapclass\"" : "";
-            $wrappedWord = "<{$wrap} {$classAttr}>{$word}</{$wrap}>";
-            $text = str_replace("'$word'", $wrappedWord, $text);
-        }
+        // Extract and wrap words in single quotes
+        $text = preg_replace_callback("/'([^']+)'/", function($matches) use ($wrap, $wrapclass) {
+            $classAttr = !empty($wrapclass) ? " class=\"$wrapclass\"" : "";
+            return "<{$wrap}{$classAttr}>{$matches[1]}</{$wrap}>";
+        }, $text);
 
-        // if splitwrap is set, split the text at the pipe character and wrap each part
+        // Wrap text in backticks with special wrap
+        $text = preg_replace_callback("/`([^`]+)`/", function($matches) use ($specialWrap, $specialWrapClass) {
+            return "<{$specialWrap} class=\"{$specialWrapClass}\">{$matches[1]}</{$specialWrap}>";
+        }, $text);
+
+        // Split the text and wrap each part if splitwrap is set
         if (!empty($splitwrap)) {
             $parts = explode("|", $text);
-            foreach ($parts as $index => $part) {
-                $part = trim($part); // trim spaces at the start and end of the part
-                $parts[$index] = "<{$splitwrap} class=\"prt--" . ($index + 1) . "\">{$part}</{$splitwrap}>";
-            }
-            $text = implode("", $parts);
-        } else {
-            // replace all occurrences of the pipe character with a <br> tag
-            $text = str_replace("|", "<br>", $text);
+            $text = implode("", array_map(function($index, $part) use ($splitwrap) {
+                $part = trim($part);
+                return "<{$splitwrap} class=\"prt--" . ($index + 1) . "\">{$part}</{$splitwrap}>";
+            }, array_keys($parts), $parts));
         }
 
-        // wrap the entire string with the specified header tag, if provided
+        // Wrap the entire string with the header tag if provided
         if (!empty($headertype)) {
-            $headerclassAttr = !empty($headerclass) ? "class=\"$headerclass\"" : "";
-            $html = "<{$headertype} {$headerclassAttr}>{$text}</{$headertype}>";
-        } else {
-            $html = $text;
+            $headerclassAttr = !empty($headerclass) ? " class=\"$headerclass\"" : "";
+            $text = "<{$headertype}{$headerclassAttr}>{$text}</{$headertype}>";
         }
 
-        return $html;
+        return $text;
     }
 }
