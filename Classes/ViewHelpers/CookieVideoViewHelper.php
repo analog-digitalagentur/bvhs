@@ -80,13 +80,13 @@ class CookieVideoViewHelper extends AbstractTagBasedViewHelper
     protected function getYouTubeEmbedUrl($url)
     {
         $videoId = $this->extractYouTubeId($url);
-        return 'https://www.youtube.com/embed/' . $videoId;
+        return 'https://www.youtube-nocookie.com/embed/' . $videoId . '?rel=0&modestbranding=1';
     }
 
     protected function getVimeoEmbedUrl($url)
     {
         $videoId = $this->extractVimeoId($url);
-        return 'https://player.vimeo.com/video/' . $videoId;
+        return 'https://player.vimeo.com/video/' . $videoId . '?dnt=1&app_id=122963';
     }
 
     protected function extractYouTubeId($url)
