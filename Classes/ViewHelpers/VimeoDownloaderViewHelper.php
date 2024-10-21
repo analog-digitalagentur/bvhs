@@ -26,6 +26,7 @@ class VimeoDownloaderViewHelper extends AbstractViewHelper
         $this->registerArgument('controls', 'boolean', 'Whether to show video controls', false, false);
         $this->registerArgument('autoplay', 'boolean', 'Whether the video should autoplay', false, false);
         $this->registerArgument('poster', 'string', 'URL for the video poster image', false);
+        $this->registerArgument('playsinline', 'boolean', 'Whether the video should play inline on mobile devices', false, false);
     }
 
     public static function renderStatic(
@@ -230,6 +231,10 @@ class VimeoDownloaderViewHelper extends AbstractViewHelper
 
         if (!empty($arguments['poster'])) {
             $attributes['poster'] = $arguments['poster'];
+        }
+
+        if ($arguments['playsinline']) {
+            $attributes['playsinline'] = '';
         }
 
         $attributeString = '';
