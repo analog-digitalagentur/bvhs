@@ -18,6 +18,14 @@ class VimeoDownloaderViewHelper extends AbstractViewHelper
     public function initializeArguments()
     {
         $this->registerArgument('videoID', 'string', 'The ID of the Vimeo video', true);
+        $this->registerArgument('id', 'string', 'The ID attribute for the video tag', false);
+        $this->registerArgument('class', 'string', 'The class attribute for the video tag', false);
+        $this->registerArgument('preload', 'string', 'The preload attribute for the video tag', false);
+        $this->registerArgument('muted', 'boolean', 'Whether the video should be muted', false, false);
+        $this->registerArgument('loop', 'boolean', 'Whether the video should loop', false, false);
+        $this->registerArgument('controls', 'boolean', 'Whether to show video controls', false, false);
+        $this->registerArgument('autoplay', 'boolean', 'Whether the video should autoplay', false, false);
+        $this->registerArgument('poster', 'string', 'URL for the video poster image', false);
     }
 
     public static function renderStatic(
@@ -28,7 +36,7 @@ class VimeoDownloaderViewHelper extends AbstractViewHelper
         $videoID = $arguments['videoID'];
 
         if (empty($videoID)) {
-            return self::generateEmptyVideoTag();
+            return self::generateEmptyVideoTag($arguments);
         }
 
         try {
@@ -46,7 +54,7 @@ class VimeoDownloaderViewHelper extends AbstractViewHelper
         $videoData = self::fetchVideoData($videoID, $vimeoApiToken);
 
         if (isset($videoData['error'])) {
-            return self::generateEmptyVideoTag();
+            return self::generateEmptyVideoTag($arguments);
         }
 
         $downloadInfos = $videoData['download'];
@@ -54,7 +62,7 @@ class VimeoDownloaderViewHelper extends AbstractViewHelper
         $existingFiles = self::getExistingFiles($vimeoFolder);
         $result = self::processVideos($downloadInfos, $vimeoFolder, $existingFiles);
 
-        return self::generateVideoTag($result, $vimeoFolder, $downloadInfos);
+        return self::generateVideoTag($result, $vimeoFolder, $downloadInfos, $arguments);
     }
 
     private static function fetchVideoData($videoID, $apiToken)
@@ -156,7 +164,7 @@ class VimeoDownloaderViewHelper extends AbstractViewHelper
         return $processedFiles;
     }
 
-    private static function generateVideoTag($processedFiles, $vimeoFolder, $downloadInfos)
+    private static function generateVideoTag($processedFiles, $vimeoFolder, $downloadInfos, $arguments)
     {
         $sources = [];
         $widths = [];
@@ -190,16 +198,60 @@ class VimeoDownloaderViewHelper extends AbstractViewHelper
             $sources[] = $lastSource;
         }
 
+        $attributes = [];
+
+        if (!empty($arguments['id'])) {
+            $attributes['id'] = $arguments['id'];
+        }
+
+        if (!empty($arguments['class'])) {
+            $attributes['class'] = $arguments['class'];
+        }
+
+        if (!empty($arguments['preload'])) {
+            $attributes['preload'] = $arguments['preload'];
+        }
+
+        if ($arguments['muted']) {
+            $attributes['muted'] = '';
+        }
+
+        if ($arguments['loop']) {
+            $attributes['loop'] = '';
+        }
+
+        if ($arguments['controls']) {
+            $attributes['controls'] = '';
+        }
+
+        if ($arguments['autoplay']) {
+            $attributes['autoplay'] = '';
+        }
+
+        if (!empty($arguments['poster'])) {
+            $attributes['poster'] = $arguments['poster'];
+        }
+
+        $attributeString = '';
+        foreach ($attributes as $key => $value) {
+            if ($value === '') {
+                $attributeString .= ' ' . $key;
+            } else {
+                $attributeString .= sprintf(' %s="%s"', $key, htmlspecialchars($value));
+            }
+        }
+
         $videoTag = sprintf(
-            '<video class="video-js" muted preload="none">%s</video>',
+            '<video%s>%s</video>',
+            $attributeString,
             implode("\n    ", $sources)
         );
 
         return $videoTag;
     }
 
-    private static function generateEmptyVideoTag()
+    private static function generateEmptyVideoTag($arguments)
     {
-        return '<video class="video-js" muted preload="none"></video>';
+        return '<video></video>';
     }
 }
