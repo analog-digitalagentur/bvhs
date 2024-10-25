@@ -61,7 +61,7 @@ class VimeoDownloaderViewHelper extends AbstractViewHelper
         $downloadInfos = $videoData['download'];
 
         $existingFiles = self::getExistingFiles($vimeoFolder);
-        $result = self::processVideos($downloadInfos, $vimeoFolder, $existingFiles);
+        $result = self::processVideos($downloadInfos, $vimeoFolder, $existingFiles, $vimeoApiToken);
 
         return self::generateVideoTag($result, $vimeoFolder, $downloadInfos, $arguments);
     }
@@ -105,7 +105,7 @@ class VimeoDownloaderViewHelper extends AbstractViewHelper
         return $existingFiles;
     }
 
-    private static function processVideos($downloadInfos, $vimeoFolder, $existingFiles)
+    private static function processVideos($downloadInfos, $vimeoFolder, $existingFiles, $vimeoApiToken)
     {
         $resourceFactory = GeneralUtility::makeInstance(ResourceFactory::class);
         $storage = $resourceFactory->getDefaultStorage();
