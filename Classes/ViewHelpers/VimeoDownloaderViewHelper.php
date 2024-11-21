@@ -16,6 +16,7 @@ class VimeoDownloaderViewHelper extends AbstractViewHelper
     protected $escapeOutput = false;
     private static $cacheFile = 'typo3temp/var/cache/bvhs/vimeo_cache.json';
     private static $cacheTimeout = 86400; // 24 Stunden in Sekunden
+    private static $maxAge = 2592000; // 30 Tage in Sekunden
 
     public function initializeArguments()
     {
@@ -57,10 +58,7 @@ class VimeoDownloaderViewHelper extends AbstractViewHelper
         }
 
         if ($useCache) {
-            // Lade Cache-Daten
             $cacheData = self::loadCache();
-
-            // Prüfe, ob ein Update notwendig ist
             if (!self::needsUpdate($videoID, $cacheData)) {
                 return self::generateVideoTag(
                     $cacheData[$videoID]['files'],
@@ -82,7 +80,6 @@ class VimeoDownloaderViewHelper extends AbstractViewHelper
         $processedFiles = self::processVideos($downloadInfos, $vimeoFolder, $existingFiles, $vimeoApiToken);
 
         if ($useCache) {
-            // Speichere die Ergebnisse im Cache
             self::updateCache($videoID, $processedFiles, $downloadInfos);
         }
 
@@ -94,9 +91,33 @@ class VimeoDownloaderViewHelper extends AbstractViewHelper
         $cacheFilePath = GeneralUtility::getFileAbsFileName(self::$cacheFile);
         if (file_exists($cacheFilePath)) {
             $cacheContent = file_get_contents($cacheFilePath);
-            return json_decode($cacheContent, true) ?: [];
+            $cacheData = json_decode($cacheContent, true) ?: [];
+
+            // Lösche alte Einträge
+            self::cleanOldEntries($cacheData);
+
+            return $cacheData;
         }
         return [];
+    }
+
+    private static function cleanOldEntries(&$cacheData)
+    {
+        $now = time();
+        $modified = false;
+
+        foreach ($cacheData as $videoID => $data) {
+            if (($now - $data['last_check']) > self::$maxAge) {
+                unset($cacheData[$videoID]);
+                $modified = true;
+            }
+        }
+
+        // Wenn Einträge gelöscht wurden, speichere die aktualisierte Datei
+        if ($modified) {
+            $cacheFilePath = GeneralUtility::getFileAbsFileName(self::$cacheFile);
+            file_put_contents($cacheFilePath, json_encode($cacheData, JSON_PRETTY_PRINT));
+        }
     }
 
     private static function needsUpdate($videoID, $cacheData)
