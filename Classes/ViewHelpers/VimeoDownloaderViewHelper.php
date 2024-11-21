@@ -14,6 +14,8 @@ class VimeoDownloaderViewHelper extends AbstractViewHelper
     use CompileWithRenderStatic;
 
     protected $escapeOutput = false;
+    private static $cacheFile = 'typo3temp/var/cache/bvhs/vimeo_cache.json';
+    private static $cacheTimeout = 86400; // 24 Stunden in Sekunden
 
     public function initializeArguments()
     {
@@ -27,6 +29,7 @@ class VimeoDownloaderViewHelper extends AbstractViewHelper
         $this->registerArgument('autoplay', 'boolean', 'Whether the video should autoplay', false, false);
         $this->registerArgument('poster', 'string', 'URL for the video poster image', false);
         $this->registerArgument('playsinline', 'boolean', 'Whether the video should play inline on mobile devices', false, false);
+        $this->registerArgument('useCache', 'string', 'Whether to use 24h cache for video checks (1/0)', false, '1');
     }
 
     public static function renderStatic(
@@ -35,6 +38,7 @@ class VimeoDownloaderViewHelper extends AbstractViewHelper
         RenderingContextInterface $renderingContext
     ) {
         $videoID = $arguments['videoID'];
+        $useCache = filter_var($arguments['useCache'], FILTER_VALIDATE_BOOLEAN);
 
         if (empty($videoID)) {
             return self::generateEmptyVideoTag($arguments);
@@ -52,6 +56,21 @@ class VimeoDownloaderViewHelper extends AbstractViewHelper
             return 'Error: Vimeo API token or folder not set in extension configuration';
         }
 
+        if ($useCache) {
+            // Lade Cache-Daten
+            $cacheData = self::loadCache();
+
+            // Prüfe, ob ein Update notwendig ist
+            if (!self::needsUpdate($videoID, $cacheData)) {
+                return self::generateVideoTag(
+                    $cacheData[$videoID]['files'],
+                    $vimeoFolder,
+                    $cacheData[$videoID]['download_infos'],
+                    $arguments
+                );
+            }
+        }
+
         $videoData = self::fetchVideoData($videoID, $vimeoApiToken);
 
         if (isset($videoData['error'])) {
@@ -59,11 +78,55 @@ class VimeoDownloaderViewHelper extends AbstractViewHelper
         }
 
         $downloadInfos = $videoData['download'];
-
         $existingFiles = self::getExistingFiles($vimeoFolder);
-        $result = self::processVideos($downloadInfos, $vimeoFolder, $existingFiles, $vimeoApiToken);
+        $processedFiles = self::processVideos($downloadInfos, $vimeoFolder, $existingFiles, $vimeoApiToken);
 
-        return self::generateVideoTag($result, $vimeoFolder, $downloadInfos, $arguments);
+        if ($useCache) {
+            // Speichere die Ergebnisse im Cache
+            self::updateCache($videoID, $processedFiles, $downloadInfos);
+        }
+
+        return self::generateVideoTag($processedFiles, $vimeoFolder, $downloadInfos, $arguments);
+    }
+
+    private static function loadCache()
+    {
+        $cacheFilePath = GeneralUtility::getFileAbsFileName(self::$cacheFile);
+        if (file_exists($cacheFilePath)) {
+            $cacheContent = file_get_contents($cacheFilePath);
+            return json_decode($cacheContent, true) ?: [];
+        }
+        return [];
+    }
+
+    private static function needsUpdate($videoID, $cacheData)
+    {
+        if (!isset($cacheData[$videoID])) {
+            return true;
+        }
+
+        $lastUpdate = $cacheData[$videoID]['last_check'] ?? 0;
+        return (time() - $lastUpdate) >= self::$cacheTimeout;
+    }
+
+    private static function updateCache($videoID, $files, $downloadInfos)
+    {
+        $cacheFilePath = GeneralUtility::getFileAbsFileName(self::$cacheFile);
+        $cacheDir = dirname($cacheFilePath);
+
+        // Stelle sicher, dass das Verzeichnis existiert
+        if (!is_dir($cacheDir)) {
+            GeneralUtility::mkdir_deep($cacheDir);
+        }
+
+        $cacheData = self::loadCache();
+        $cacheData[$videoID] = [
+            'last_check' => time(),
+            'files' => $files,
+            'download_infos' => $downloadInfos
+        ];
+
+        file_put_contents($cacheFilePath, json_encode($cacheData, JSON_PRETTY_PRINT));
     }
 
     private static function fetchVideoData($videoID, $apiToken)
@@ -153,7 +216,6 @@ class VimeoDownloaderViewHelper extends AbstractViewHelper
             file_put_contents($tempFile, $success);
 
             try {
-                // Use RENAME behavior to avoid creating duplicates
                 $file = $folder->addFile($tempFile, $filenameWithHash, DuplicationBehavior::REPLACE);
                 $processedFiles[$downloadInfo['rendition']] = $file->getName();
                 @unlink($tempFile);
