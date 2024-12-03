@@ -20,6 +20,7 @@ class CookieVideoViewHelper extends AbstractTagBasedViewHelper
         $this->registerArgument('width', 'string', 'Width of the iframe', false, '560');
         $this->registerArgument('height', 'string', 'Height of the iframe', false, '315');
         $this->registerArgument('additionalConfig', 'array', 'Additional configuration for the iframe', false, []);
+        $this->registerArgument('additionalAttributes', 'array', 'Additional attributes for the iframe', false, []);
     }
 
     public function render()
@@ -51,13 +52,22 @@ class CookieVideoViewHelper extends AbstractTagBasedViewHelper
         $this->tag->addAttribute('frameborder', '0');
         $this->tag->addAttribute('allowfullscreen', '');
 
-        // Add width and height as inline styles
-        $style = sprintf('width: %s; height: %s;', $width, $height);
-        $this->tag->addAttribute('style', $style);
+        // Add width and height as inline styles if not overridden by additionalAttributes
+        if (!isset($this->arguments['additionalAttributes']['style'])) {
+            $style = sprintf('width: %s; height: %s;', $width, $height);
+            $this->tag->addAttribute('style', $style);
+        }
 
         // Add any additional config as attributes
         foreach ($additionalConfig as $key => $value) {
             $this->tag->addAttribute($key, $value);
+        }
+
+        // Add any additional attributes
+        if (isset($this->arguments['additionalAttributes']) && is_array($this->arguments['additionalAttributes'])) {
+            foreach ($this->arguments['additionalAttributes'] as $key => $value) {
+                $this->tag->addAttribute($key, $value);
+            }
         }
 
         // Ensure the tag is not self-closing
