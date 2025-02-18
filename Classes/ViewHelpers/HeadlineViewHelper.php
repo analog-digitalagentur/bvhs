@@ -1,4 +1,5 @@
 <?php
+
 namespace Bo\Bvhs\ViewHelpers;
 
 use TYPO3Fluid\Fluid\Core\ViewHelper\AbstractViewHelper;
@@ -63,24 +64,35 @@ class HeadlineViewHelper extends AbstractViewHelper
             return "";
         }
 
+        // Get extension configuration
+        $extensionConfiguration = \TYPO3\CMS\Core\Utility\GeneralUtility::makeInstance(
+            \TYPO3\CMS\Core\Configuration\ExtensionConfiguration::class
+        )->get('bvhs');
+
+        // Get line break placeholder from configuration or use default
+        $lineBreakPlaceholder = $extensionConfiguration['lineBreakPlaceholder'] ?? '|';
+
         // Extract and wrap words in single quotes
-        $text = preg_replace_callback("/'([^']+)'/", function($matches) use ($wrap, $wrapclass) {
+        $text = preg_replace_callback("/'([^']+)'/", function ($matches) use ($wrap, $wrapclass) {
             $classAttr = !empty($wrapclass) ? " class=\"$wrapclass\"" : "";
             return "<{$wrap}{$classAttr}>{$matches[1]}</{$wrap}>";
         }, $text);
 
         // Wrap text in backticks with special wrap
-        $text = preg_replace_callback("/`([^`]+)`/", function($matches) use ($specialWrap, $specialWrapClass) {
+        $text = preg_replace_callback("/`([^`]+)`/", function ($matches) use ($specialWrap, $specialWrapClass) {
             return "<{$specialWrap} class=\"{$specialWrapClass}\">{$matches[1]}</{$specialWrap}>";
         }, $text);
 
         // Split the text and wrap each part if splitwrap is set
         if (!empty($splitwrap)) {
-            $parts = explode("|", $text);
-            $text = implode("", array_map(function($index, $part) use ($splitwrap) {
+            $parts = explode($lineBreakPlaceholder, $text);
+            $text = implode("", array_map(function ($index, $part) use ($splitwrap) {
                 $part = trim($part);
                 return "<{$splitwrap} class=\"prt--" . ($index + 1) . "\">{$part}</{$splitwrap}>";
             }, array_keys($parts), $parts));
+        } else {
+            // If no splitwrap is set, simply replace placeholder with br tags
+            $text = implode("<br>", array_map('trim', explode($lineBreakPlaceholder, $text)));
         }
 
         // Wrap the entire string with the header tag if provided
