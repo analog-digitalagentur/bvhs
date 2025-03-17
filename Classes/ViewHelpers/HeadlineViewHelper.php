@@ -92,7 +92,9 @@ class HeadlineViewHelper extends AbstractViewHelper
             }, array_keys($parts), $parts));
         } else {
             // If no splitwrap is set, simply replace placeholder with br tags
-            $text = implode("<br>", array_map('trim', explode($lineBreakPlaceholder, $text)));
+            $parts = explode($lineBreakPlaceholder, $text);
+            $parts = array_map('trim', $parts);
+            $text = implode("<br> ", $parts);
         }
 
         // Wrap the entire string with the header tag if provided
