@@ -3,7 +3,7 @@
 #
 # cat=viewhelperSettings/enable/100; type=input; label=Vimeo API Token
 vimeoApiToken =
-# cat=viewhelperSettings/enable/100; type=input; label=Fileadmin Folder for Vimeo Videos
+# cat=viewhelperSettings/enable/200; type=input; label=Fileadmin Folder for Vimeo Videos
 vimeoFolder = Vimeo
 # cat=basic/enable; type=string; label=Line break placeholder for HeadlineViewHelper default is pipe 
 lineBreakPlaceholder = "|"
