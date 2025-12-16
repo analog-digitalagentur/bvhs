@@ -64,6 +64,13 @@ class MainViewHelper extends AbstractViewHelper
             false,
             []
         );
+        $this->registerArgument(
+            "devMode",
+            "bool",
+            "Optional: Force development mode for this specific entry (overrides VITE_DEVELOPMENT)",
+            false,
+            null
+        );
     }
 
     public function render(): void
@@ -74,6 +81,13 @@ class MainViewHelper extends AbstractViewHelper
 
         $vueDevelopment = getenv("VUE_DEVELOPMENT");
         $viteDevelopment = getenv("VITE_DEVELOPMENT");
+
+        // Allow per-entry devMode override
+        $devModeOverride = $this->arguments["devMode"];
+        if ($devModeOverride !== null) {
+            $viteDevelopment = $devModeOverride;
+            $vueDevelopment = false; // devMode takes precedence
+        }
 
         $additionalAttributes = $this->arguments["additionalAttributes"];
         $additionalAttributesString = "";
