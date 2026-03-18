@@ -1,2 +1,2 @@
 <?php
-defined('TYPO3') or die('Access denied.');
+// Empty - no ext_tables configuration needed
