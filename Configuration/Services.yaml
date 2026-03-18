@@ -6,7 +6,3 @@ services:
 
     Bo\Bvhs\:
         resource: '../Classes/*'
-
-    B13\Assetcollector\AssetCollector:
-        autowire: true
-        autoconfigure: true
