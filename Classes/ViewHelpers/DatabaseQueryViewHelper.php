@@ -4,9 +4,6 @@ namespace Bo\Bvhs\ViewHelpers;
 
 use TYPO3Fluid\Fluid\Core\ViewHelper\AbstractViewHelper;
 use TYPO3\CMS\Core\Database\ConnectionPool;
-use TYPO3\CMS\Core\Utility\GeneralUtility;
-use TYPO3Fluid\Fluid\Core\Rendering\RenderingContextInterface;
-use TYPO3Fluid\Fluid\Core\ViewHelper\Traits\CompileWithRenderStatic;
 
 /**
  * DatabaseQueryViewHelper führt eine Datenbankabfrage auf einer bestimmten Tabelle durch und gibt die Ergebnisse zurück.
@@ -32,14 +29,15 @@ use TYPO3Fluid\Fluid\Core\ViewHelper\Traits\CompileWithRenderStatic;
 
 class DatabaseQueryViewHelper extends AbstractViewHelper
 {
-    use CompileWithRenderStatic;
-    
     protected $escapeOutput = false;
+    public function __construct(private readonly ConnectionPool $connectionPool)
+    {
+    }
 
     /**
      * Initialize arguments
      */
-    public function initializeArguments()
+    public function initializeArguments(): void
     {
         $this->registerArgument('table', 'string', 'The table to select data from', true);
         $this->registerArgument('pidInList', 'int', 'Page id list to fetch data from', false, 0);
@@ -49,41 +47,37 @@ class DatabaseQueryViewHelper extends AbstractViewHelper
     }
 
     /**
-     * @param array $arguments
-     * @param \Closure $renderChildrenClosure
-     * @param RenderingContextInterface $renderingContext
-     *
      * @return mixed
      */
-    public static function renderStatic(array $arguments, \Closure $renderChildrenClosure, RenderingContextInterface $renderingContext)
+    public function render()
     {
-        $queryBuilder = GeneralUtility::makeInstance(ConnectionPool::class)->getQueryBuilderForTable($arguments['table']);
+        $queryBuilder = $this->connectionPool->getQueryBuilderForTable($this->arguments['table']);
 
         $records = $queryBuilder
             ->select('*')
-            ->from($arguments['table'])
-            ->where($arguments['where'])
-            ->orderBy($arguments['orderBy'])
-            ->execute()
-            ->fetchAll();
+            ->from($this->arguments['table'])
+            ->where($this->arguments['where'])
+            ->orderBy($this->arguments['orderBy'])
+            ->executeQuery()
+            ->fetchAllAssociative();
 
-        $templateVariableContainer = $renderingContext->getVariableProvider();
+        $templateVariableContainer = $this->renderingContext->getVariableProvider();
 
         $previousData = null;
 
-        if ($templateVariableContainer->exists($arguments['as'])) {
-            $previousData = $templateVariableContainer->get($arguments['as']);
-            $templateVariableContainer->remove($arguments['as']);
+        if ($templateVariableContainer->exists($this->arguments['as'])) {
+            $previousData = $templateVariableContainer->get($this->arguments['as']);
+            $templateVariableContainer->remove($this->arguments['as']);
         }
 
-        $templateVariableContainer->add($arguments['as'], $records);
+        $templateVariableContainer->add($this->arguments['as'], $records);
 
-        $output = $renderChildrenClosure();
+        $output = $this->renderChildren();
 
-        $templateVariableContainer->remove($arguments['as']);
+        $templateVariableContainer->remove($this->arguments['as']);
 
         if ($previousData) {
-            $templateVariableContainer->add($arguments['as'], $previousData);
+            $templateVariableContainer->add($this->arguments['as'], $previousData);
         }
 
         return $output;
