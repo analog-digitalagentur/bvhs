@@ -55,7 +55,7 @@ class JsonMenuProcessor implements DataProcessorInterface
         array $contentObjectConfiguration,
         array $processorConfiguration,
         array $processedData
-    ) {
+    ): array {
         $processedData = $this->menuProcessor->process($cObj, $contentObjectConfiguration, $processorConfiguration, $processedData);
 
         $menuData = $processedData[$processorConfiguration['as'] ?? 'menu'] ?? [];
