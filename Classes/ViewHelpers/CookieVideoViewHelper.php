@@ -3,8 +3,6 @@
 namespace Bo\Bvhs\ViewHelpers;
 
 use TYPO3\CMS\Core\Resource\FileInterface;
-use TYPO3\CMS\Core\Resource\FileReference;
-use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3\CMS\Extbase\Domain\Model\FileReference as ExtbaseFileReference;
 use TYPO3Fluid\Fluid\Core\ViewHelper\AbstractTagBasedViewHelper;
 
@@ -12,10 +10,9 @@ class CookieVideoViewHelper extends AbstractTagBasedViewHelper
 {
     protected $tagName = 'iframe';
 
-    public function initializeArguments()
+    public function initializeArguments(): void
     {
         parent::initializeArguments();
-        $this->registerUniversalTagAttributes();
         $this->registerArgument('file', 'mixed', 'File', true);
         $this->registerArgument('width', 'string', 'Width of the iframe', false, '560');
         $this->registerArgument('height', 'string', 'Height of the iframe', false, '315');
@@ -23,7 +20,7 @@ class CookieVideoViewHelper extends AbstractTagBasedViewHelper
         $this->registerArgument('additionalAttributes', 'array', 'Additional attributes for the iframe', false, []);
     }
 
-    public function render()
+    public function render(): string
     {
         $file = $this->arguments['file'];
         $width = $this->arguments['width'];
@@ -35,7 +32,7 @@ class CookieVideoViewHelper extends AbstractTagBasedViewHelper
         }
 
         if (!$file instanceof FileInterface) {
-            throw new \UnexpectedValueException('Supplied file object type ' . get_class($file) . ' must be FileInterface.', 1454252193);
+            throw new \UnexpectedValueException('Supplied file object type ' . $file::class . ' must be FileInterface.', 1454252193);
         }
 
         return $this->renderIframe($file, $width, $height, $additionalConfig);
@@ -78,12 +75,12 @@ class CookieVideoViewHelper extends AbstractTagBasedViewHelper
 
     protected function getEmbedUrl($url)
     {
-        if (strpos($url, 'youtube.com') !== false || strpos($url, 'youtu.be') !== false) {
+        if (str_contains((string) $url, 'youtube.com') || str_contains((string) $url, 'youtu.be')) {
             return $this->getYouTubeEmbedUrl($url);
-        } elseif (strpos($url, 'vimeo.com') !== false) {
+        } elseif (str_contains((string) $url, 'vimeo.com')) {
             return $this->getVimeoEmbedUrl($url);
         } else {
-            throw new \InvalidArgumentException('Unsupported video URL: ' . $url);
+            throw new \InvalidArgumentException('Unsupported video URL: ' . $url, 2010610079);
         }
     }
 
@@ -103,7 +100,7 @@ class CookieVideoViewHelper extends AbstractTagBasedViewHelper
     {
         $videoId = '';
         $pattern = '/(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/i';
-        if (preg_match($pattern, $url, $match)) {
+        if (preg_match($pattern, (string) $url, $match)) {
             $videoId = $match[1];
         }
         return $videoId;
@@ -113,7 +110,7 @@ class CookieVideoViewHelper extends AbstractTagBasedViewHelper
     {
         $videoId = '';
         $pattern = '/(?:www\.|player\.)?vimeo.com\/(?:channels\/(?:\w+\/)?|groups\/(?:[^\/]*)\/videos\/|album\/(?:\d+)\/video\/|video\/|)(\d+)(?:[a-zA-Z0-9_\-]+)?/i';
-        if (preg_match($pattern, $url, $match)) {
+        if (preg_match($pattern, (string) $url, $match)) {
             $videoId = $match[1];
         }
         return $videoId;

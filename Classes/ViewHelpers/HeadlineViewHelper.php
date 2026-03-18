@@ -2,9 +2,9 @@
 
 namespace Bo\Bvhs\ViewHelpers;
 
+use TYPO3\CMS\Core\Utility\GeneralUtility;
+use TYPO3\CMS\Core\Configuration\ExtensionConfiguration;
 use TYPO3Fluid\Fluid\Core\ViewHelper\AbstractViewHelper;
-use TYPO3Fluid\Fluid\Core\Rendering\RenderingContextInterface;
-use TYPO3Fluid\Fluid\Core\ViewHelper\Traits\CompileWithRenderStatic;
 
 /**
  * HeadlineViewHelper formats a given text string, wraps specified parts with custom HTML tags and classes,
@@ -30,11 +30,9 @@ use TYPO3Fluid\Fluid\Core\ViewHelper\Traits\CompileWithRenderStatic;
 
 class HeadlineViewHelper extends AbstractViewHelper
 {
-    use CompileWithRenderStatic;
-
     protected $escapeOutput = false;
 
-    public function initializeArguments()
+    public function initializeArguments(): void
     {
         $this->registerArgument("text", "string", "The text to format", true);
         $this->registerArgument("wrap", "string", "The HTML tag to wrap the first part of the text with", true);
@@ -46,27 +44,24 @@ class HeadlineViewHelper extends AbstractViewHelper
         $this->registerArgument("specialWrapClass", "string", "The class to add to the special wrapped HTML element", false, "special");
     }
 
-    public static function renderStatic(
-        array $arguments,
-        \Closure $renderChildrenClosure,
-        RenderingContextInterface $renderingContext
-    ) {
-        $text = $arguments["text"] ?? "";
-        $wrap = $arguments["wrap"] ?? "";
-        $wrapclass = $arguments["wrapclass"] ?? "";
-        $headertype = $arguments["headertype"] ?? "";
-        $headerclass = $arguments["headerclass"] ?? "";
-        $splitwrap = $arguments["splitwrap"] ?? "";
-        $specialWrap = $arguments["specialWrap"] ?? "span";
-        $specialWrapClass = $arguments["specialWrapClass"] ?? "special";
+    public function render(): string
+    {
+        $text = $this->arguments["text"] ?? "";
+        $wrap = $this->arguments["wrap"] ?? "";
+        $wrapclass = $this->arguments["wrapclass"] ?? "";
+        $headertype = $this->arguments["headertype"] ?? "";
+        $headerclass = $this->arguments["headerclass"] ?? "";
+        $splitwrap = $this->arguments["splitwrap"] ?? "";
+        $specialWrap = $this->arguments["specialWrap"] ?? "span";
+        $specialWrapClass = $this->arguments["specialWrapClass"] ?? "special";
 
         if (empty($text)) {
             return "";
         }
 
         // Get extension configuration
-        $extensionConfiguration = \TYPO3\CMS\Core\Utility\GeneralUtility::makeInstance(
-            \TYPO3\CMS\Core\Configuration\ExtensionConfiguration::class
+        $extensionConfiguration = GeneralUtility::makeInstance(
+            ExtensionConfiguration::class
         )->get('bvhs');
 
         // Get line break placeholder from configuration or use default
@@ -74,14 +69,12 @@ class HeadlineViewHelper extends AbstractViewHelper
 
         // Extract and wrap words in single quotes
         $text = preg_replace_callback("/'([^']+)'/", function ($matches) use ($wrap, $wrapclass) {
-            $classAttr = !empty($wrapclass) ? " class=\"$wrapclass\"" : "";
+            $classAttr = empty($wrapclass) ? "" : " class=\"$wrapclass\"";
             return "<{$wrap}{$classAttr}>{$matches[1]}</{$wrap}>";
-        }, $text);
+        }, (string) $text);
 
         // Wrap text in backticks with special wrap
-        $text = preg_replace_callback("/`([^`]+)`/", function ($matches) use ($specialWrap, $specialWrapClass) {
-            return "<{$specialWrap} class=\"{$specialWrapClass}\">{$matches[1]}</{$specialWrap}>";
-        }, $text);
+        $text = preg_replace_callback("/`([^`]+)`/", fn($matches) => "<{$specialWrap} class=\"{$specialWrapClass}\">{$matches[1]}</{$specialWrap}>", $text);
 
         // Split the text and wrap each part if splitwrap is set
         if (!empty($splitwrap)) {
@@ -93,13 +86,13 @@ class HeadlineViewHelper extends AbstractViewHelper
         } else {
             // If no splitwrap is set, simply replace placeholder with br tags
             $parts = explode($lineBreakPlaceholder, $text);
-            $parts = array_map('trim', $parts);
+            $parts = array_map(trim(...), $parts);
             $text = implode("<br> ", $parts);
         }
 
         // Wrap the entire string with the header tag if provided
         if (!empty($headertype)) {
-            $headerclassAttr = !empty($headerclass) ? " class=\"$headerclass\"" : "";
+            $headerclassAttr = empty($headerclass) ? "" : " class=\"$headerclass\"";
             $text = "<{$headertype}{$headerclassAttr}>{$text}</{$headertype}>";
         }
 

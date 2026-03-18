@@ -6,19 +6,18 @@ use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3\CMS\Core\Resource\ResourceFactory;
 use TYPO3\CMS\Core\Resource\DuplicationBehavior;
 use TYPO3Fluid\Fluid\Core\ViewHelper\AbstractViewHelper;
-use TYPO3Fluid\Fluid\Core\Rendering\RenderingContextInterface;
-use TYPO3Fluid\Fluid\Core\ViewHelper\Traits\CompileWithRenderStatic;
 
 class VimeoDownloaderViewHelper extends AbstractViewHelper
 {
-    use CompileWithRenderStatic;
-
     protected $escapeOutput = false;
     private static $cacheFile = 'typo3temp/var/cache/bvhs/vimeo_cache.json';
     private static $cacheTimeout = 86400; // 24 Stunden in Sekunden
-    private static $maxAge = 2592000; // 30 Tage in Sekunden
+    private static $maxAge = 2592000;
+    public function __construct(private readonly ResourceFactory $resourceFactory)
+    {
+    } // 30 Tage in Sekunden
 
-    public function initializeArguments()
+    public function initializeArguments(): void
     {
         $this->registerArgument('videoID', 'string', 'The ID of the Vimeo video', true);
         $this->registerArgument('id', 'string', 'The ID attribute for the video tag', false);
@@ -33,23 +32,20 @@ class VimeoDownloaderViewHelper extends AbstractViewHelper
         $this->registerArgument('useCache', 'string', 'Whether to use 24h cache for video checks (1/0)', false, '1');
     }
 
-    public static function renderStatic(
-        array $arguments,
-        \Closure $renderChildrenClosure,
-        RenderingContextInterface $renderingContext
-    ) {
-        $videoID = $arguments['videoID'];
-        $useCache = filter_var($arguments['useCache'], FILTER_VALIDATE_BOOLEAN);
+    public function render(): string
+    {
+        $videoID = $this->arguments['videoID'];
+        $useCache = filter_var($this->arguments['useCache'], FILTER_VALIDATE_BOOLEAN);
 
         if (empty($videoID)) {
-            return self::generateEmptyVideoTag($arguments);
+            return $this->generateEmptyVideoTag($this->arguments);
         }
 
         try {
             $extensionConfiguration = GeneralUtility::makeInstance(ExtensionConfiguration::class);
             $vimeoApiToken = $extensionConfiguration->get('bvhs', 'vimeoApiToken');
             $vimeoFolder = $extensionConfiguration->get('bvhs', 'vimeoFolder');
-        } catch (\Exception $e) {
+        } catch (\Exception) {
             return 'Error: Unable to retrieve extension configuration';
         }
 
@@ -58,35 +54,30 @@ class VimeoDownloaderViewHelper extends AbstractViewHelper
         }
 
         if ($useCache) {
-            $cacheData = self::loadCache();
-            if (!self::needsUpdate($videoID, $cacheData)) {
-                return self::generateVideoTag(
-                    $cacheData[$videoID]['files'],
-                    $vimeoFolder,
-                    $cacheData[$videoID]['download_infos'],
-                    $arguments
-                );
+            $cacheData = $this->loadCache();
+            if (!$this->needsUpdate($videoID, $cacheData)) {
+                return $this->generateVideoTag($cacheData[$videoID]['files'], $vimeoFolder, $cacheData[$videoID]['download_infos'], $this->arguments);
             }
         }
 
-        $videoData = self::fetchVideoData($videoID, $vimeoApiToken);
+        $videoData = $this->fetchVideoData($videoID, $vimeoApiToken);
 
         if (isset($videoData['error'])) {
-            return self::generateEmptyVideoTag($arguments);
+            return $this->generateEmptyVideoTag($this->arguments);
         }
 
         $downloadInfos = $videoData['download'];
-        $existingFiles = self::getExistingFiles($vimeoFolder);
-        $processedFiles = self::processVideos($downloadInfos, $vimeoFolder, $existingFiles, $vimeoApiToken);
+        $existingFiles = $this->getExistingFiles($vimeoFolder);
+        $processedFiles = $this->processVideos($downloadInfos, $vimeoFolder, $existingFiles, $vimeoApiToken);
 
         if ($useCache) {
-            self::updateCache($videoID, $processedFiles, $downloadInfos);
+            $this->updateCache($videoID, $processedFiles, $downloadInfos);
         }
 
-        return self::generateVideoTag($processedFiles, $vimeoFolder, $downloadInfos, $arguments);
+        return $this->generateVideoTag($processedFiles, $vimeoFolder, $downloadInfos, $this->arguments);
     }
 
-    private static function loadCache()
+    private function loadCache()
     {
         $cacheFilePath = GeneralUtility::getFileAbsFileName(self::$cacheFile);
         if (file_exists($cacheFilePath)) {
@@ -94,14 +85,14 @@ class VimeoDownloaderViewHelper extends AbstractViewHelper
             $cacheData = json_decode($cacheContent, true) ?: [];
 
             // Lösche alte Einträge
-            self::cleanOldEntries($cacheData);
+            $this->cleanOldEntries($cacheData);
 
             return $cacheData;
         }
         return [];
     }
 
-    private static function cleanOldEntries(&$cacheData)
+    private function cleanOldEntries(&$cacheData): void
     {
         $now = time();
         $modified = false;
@@ -120,7 +111,7 @@ class VimeoDownloaderViewHelper extends AbstractViewHelper
         }
     }
 
-    private static function needsUpdate($videoID, $cacheData)
+    private function needsUpdate($videoID, $cacheData)
     {
         if (!isset($cacheData[$videoID])) {
             return true;
@@ -130,7 +121,7 @@ class VimeoDownloaderViewHelper extends AbstractViewHelper
         return (time() - $lastUpdate) >= self::$cacheTimeout;
     }
 
-    private static function updateCache($videoID, $files, $downloadInfos)
+    private function updateCache($videoID, $files, $downloadInfos): void
     {
         $cacheFilePath = GeneralUtility::getFileAbsFileName(self::$cacheFile);
         $cacheDir = dirname($cacheFilePath);
@@ -140,7 +131,7 @@ class VimeoDownloaderViewHelper extends AbstractViewHelper
             GeneralUtility::mkdir_deep($cacheDir);
         }
 
-        $cacheData = self::loadCache();
+        $cacheData = $this->loadCache();
         $cacheData[$videoID] = [
             'last_check' => time(),
             'files' => $files,
@@ -150,7 +141,7 @@ class VimeoDownloaderViewHelper extends AbstractViewHelper
         file_put_contents($cacheFilePath, json_encode($cacheData, JSON_PRETTY_PRINT));
     }
 
-    private static function fetchVideoData($videoID, $apiToken)
+    private function fetchVideoData($videoID, $apiToken)
     {
         $url = "https://api.vimeo.com/videos/{$videoID}?fields=download";
         $options = [
@@ -174,9 +165,9 @@ class VimeoDownloaderViewHelper extends AbstractViewHelper
         return $data;
     }
 
-    private static function getExistingFiles($vimeoFolder)
+    private function getExistingFiles($vimeoFolder)
     {
-        $resourceFactory = GeneralUtility::makeInstance(ResourceFactory::class);
+        $resourceFactory = $this->resourceFactory;
         $storage = $resourceFactory->getDefaultStorage();
         $folder = $storage->getFolder($vimeoFolder);
 
@@ -189,9 +180,9 @@ class VimeoDownloaderViewHelper extends AbstractViewHelper
         return $existingFiles;
     }
 
-    private static function processVideos($downloadInfos, $vimeoFolder, $existingFiles, $vimeoApiToken)
+    private function processVideos($downloadInfos, $vimeoFolder, $existingFiles, $vimeoApiToken)
     {
-        $resourceFactory = GeneralUtility::makeInstance(ResourceFactory::class);
+        $resourceFactory = $this->resourceFactory;
         $storage = $resourceFactory->getDefaultStorage();
 
         if (!$storage->hasFolder($vimeoFolder)) {
@@ -203,17 +194,15 @@ class VimeoDownloaderViewHelper extends AbstractViewHelper
 
         foreach ($downloadInfos as $downloadInfo) {
             $hash = md5($downloadInfo['created_time'] . $downloadInfo['size']);
-            $filename = pathinfo(parse_url($downloadInfo['link'], PHP_URL_PATH), PATHINFO_BASENAME);
+            $filename = pathinfo(parse_url((string) $downloadInfo['link'], PHP_URL_PATH), PATHINFO_BASENAME);
             $filename = urldecode($filename);
             $filenameWithHash = sprintf('%s_%s.mp4', pathinfo($filename, PATHINFO_FILENAME), $hash);
 
             // Extract hash from existing filename for comparison
             foreach ($existingFiles as $existingFile) {
-                if (preg_match('/_(?P<hash>[a-f0-9]{32})\.mp4$/', $existingFile, $matches)) {
-                    if ($matches['hash'] === $hash) {
-                        $processedFiles[$downloadInfo['rendition']] = $existingFile;
-                        continue 2;
-                    }
+                if (preg_match('/_(?P<hash>[a-f0-9]{32})\.mp4$/', $existingFile, $matches) && $matches['hash'] === $hash) {
+                    $processedFiles[$downloadInfo['rendition']] = $existingFile;
+                    continue 2;
                 }
             }
 
@@ -240,7 +229,7 @@ class VimeoDownloaderViewHelper extends AbstractViewHelper
                 $file = $folder->addFile($tempFile, $filenameWithHash, DuplicationBehavior::REPLACE);
                 $processedFiles[$downloadInfo['rendition']] = $file->getName();
                 @unlink($tempFile);
-            } catch (\Exception $e) {
+            } catch (\Exception) {
                 @unlink($tempFile);
             }
         }
@@ -248,7 +237,7 @@ class VimeoDownloaderViewHelper extends AbstractViewHelper
         return $processedFiles;
     }
 
-    private static function generateVideoTag($processedFiles, $vimeoFolder, $downloadInfos, $arguments)
+    private function generateVideoTag($processedFiles, $vimeoFolder, $downloadInfos, $arguments)
     {
         $sources = [];
         $widths = [];
@@ -276,7 +265,7 @@ class VimeoDownloaderViewHelper extends AbstractViewHelper
             }
         }
 
-        if (!empty($sources)) {
+        if ($sources !== []) {
             $lastSource = array_pop($sources);
             $lastSource = preg_replace('/media="[^"]+"/', 'media=""', $lastSource);
             $sources[] = $lastSource;
@@ -325,7 +314,7 @@ class VimeoDownloaderViewHelper extends AbstractViewHelper
             if ($value === '') {
                 $attributeString .= ' ' . $key;
             } else {
-                $attributeString .= sprintf(' %s="%s"', $key, htmlspecialchars($value));
+                $attributeString .= sprintf(' %s="%s"', $key, htmlspecialchars((string) $value));
             }
         }
 
@@ -338,7 +327,7 @@ class VimeoDownloaderViewHelper extends AbstractViewHelper
         return $videoTag;
     }
 
-    private static function generateEmptyVideoTag($arguments)
+    private function generateEmptyVideoTag($arguments)
     {
         return '<video></video>';
     }

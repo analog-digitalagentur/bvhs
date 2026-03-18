@@ -25,19 +25,19 @@ use TYPO3Fluid\Fluid\Core\ViewHelper\AbstractViewHelper;
 
 class LineToListViewHelper extends AbstractViewHelper
 {
-    public function initializeArguments()
+    public function initializeArguments(): void
     {
         $this->registerArgument('text', 'string', 'The text to convert to a list', true);
         $this->registerArgument('class', 'string', 'The class to add to the <ul> element', false, '');
     }
 
-    public function render()
+    public function render(): string
     {
         $text = $this->arguments['text'];
         $class = $this->arguments['class'];
 
         if (!empty($text)) {
-            $lines = preg_split("/\r\n|\n|\r/", $text);
+            $lines = preg_split("/\r\n|\n|\r/", (string) $text);
             $html = "<ul class=\"" . htmlspecialchars($class) . "\">";
             foreach ($lines as $line) {
                 $html .= "<li>" . htmlspecialchars(trim($line)) . "</li>";
@@ -45,5 +45,7 @@ class LineToListViewHelper extends AbstractViewHelper
             $html .= "</ul>";
             return $html;
         }
+
+        return '';
     }
 }

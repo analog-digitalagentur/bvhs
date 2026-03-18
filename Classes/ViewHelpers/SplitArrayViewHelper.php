@@ -2,9 +2,7 @@
 
 namespace Bo\Bvhs\ViewHelpers;
 
-use TYPO3Fluid\Fluid\Core\Rendering\RenderingContextInterface;
 use TYPO3Fluid\Fluid\Core\ViewHelper\AbstractViewHelper;
-use TYPO3Fluid\Fluid\Core\ViewHelper\Traits\CompileWithRenderStatic;
 
 /**
  * SplitArrayViewHelper splits an array into multiple stacks.
@@ -23,11 +21,9 @@ use TYPO3Fluid\Fluid\Core\ViewHelper\Traits\CompileWithRenderStatic;
 
 class SplitArrayViewHelper extends AbstractViewHelper
 {
-    use CompileWithRenderStatic;
-
     protected $escapeOutput = false;
 
-    public function initializeArguments()
+    public function initializeArguments(): void
     {
         $this->registerArgument('array', 'array', 'The array to split', true);
         $this->registerArgument('splitinto', 'int', 'Number of stacks to split the array into', false, 2);
@@ -35,25 +31,22 @@ class SplitArrayViewHelper extends AbstractViewHelper
         $this->registerArgument('as', 'string', 'The name of the variable to store the result', true);
     }
 
-    public static function renderStatic(
-        array $arguments,
-        \Closure $renderChildrenClosure,
-        RenderingContextInterface $renderingContext
-    ) {
-        $array = $arguments['array'];
-        $splitInto = $arguments['splitinto'];
-        $smallestStack = $arguments['smalleststack'];
-        $as = $arguments['as'];
+    public function render()
+    {
+        $array = $this->arguments['array'];
+        $splitInto = $this->arguments['splitinto'];
+        $smallestStack = $this->arguments['smalleststack'];
+        $as = $this->arguments['as'];
 
         $splitArray = [];
 
-        if (is_array($array) && !empty($array)) {
-            $splitArray = static::splitArray($array, $splitInto, $smallestStack);
+        if (is_array($array) && $array !== []) {
+            $splitArray = self::splitArray($array, $splitInto, $smallestStack);
         }
 
-        $renderingContext->getVariableProvider()->add($as, $splitArray);
-        $output = $renderChildrenClosure();
-        $renderingContext->getVariableProvider()->remove($as);
+        $this->renderingContext->getVariableProvider()->add($as, $splitArray);
+        $output = $this->renderChildren();
+        $this->renderingContext->getVariableProvider()->remove($as);
 
         return $output;
     }

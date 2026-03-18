@@ -21,7 +21,7 @@ class PhoneLinkViewHelper extends AbstractViewHelper
 {
     protected $escapeOutput = false;
 
-    public function initializeArguments()
+    public function initializeArguments(): void
     {
         $this->registerArgument('number', 'string', 'The phone number to format', true);
         $this->registerArgument('prefix', 'string', 'A prefix to add before the phone number', false, '');
@@ -38,8 +38,8 @@ class PhoneLinkViewHelper extends AbstractViewHelper
         $prefix = $this->arguments['prefix'];
 
         // Entfernen von Leerzeichen, Bindestrichen und anderen Nicht-Ziffern-Zeichen, außer dem ersten Pluszeichen
-        $cleanNumber = preg_replace('/[^\d]/', '', $number);
-        if (substr($number, 0, 1) === '+') {
+        $cleanNumber = preg_replace('/[^\d]/', '', (string) $number);
+        if (str_starts_with((string) $number, '+')) {
             $cleanNumber = '+' . $cleanNumber;
         }
 
